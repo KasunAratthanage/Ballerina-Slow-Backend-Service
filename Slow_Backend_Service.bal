@@ -32,7 +32,7 @@ map<json> bankDetails;
 //Authentication can set as 'enable' 
 //Authorization based on scpoe
 @http:ServiceConfig {
-    basePath: "/hello",
+    basePath: "/banktest",
     authConfig: {
         authentication: { enabled: true },
         scopes: ["scope1"]
@@ -101,7 +101,7 @@ retriveBankAccountDetails(endpoint client, http:Request req) {
 
 @http:ResourceConfig {
         methods: ["POST"],
-        path: "/account/hi",
+        path: "/account/banktest1",
         authConfig: {
             scopes: ["scope2"]
         }
