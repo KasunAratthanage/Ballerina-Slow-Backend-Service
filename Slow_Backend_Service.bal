@@ -6,13 +6,14 @@
 import ballerina/http;
 import ballerina/io;
 import ballerina/runtime;
+import ballerina/log;
 
 //This service is accessible at port no 9091
 
 //Ballerina client can be used to connect to the created HTTPS listener.
 //The client needs to provide values for 'trustStoreFile' and 'trustStorePassword'
 endpoint http:SecureListener ep {
-    port: 9092	,
+    port: 9095	,
 
     secureSocket: {
         keyStore: {
@@ -49,33 +50,62 @@ service<http:Service> accountMgt bind ep {
     }
 
 retriveBankAccountDetails(endpoint client, http:Request req) {
+	
+	http:Request newRequest = new;
+	
+	//Check whether 'sleeptime' header exisits in the invoking request  
+        if (!req.hasHeader("sleeptime")) {
+            http:Response errorResponse = new;
+	//If not included 'sleeptime' in header print this as a error message  
+            errorResponse.statusCode = 500;
+            json errMsg = { "error": "'sleeptime' header is not found" };
+            errorResponse.setPayload(errMsg);
+            client->respond(errorResponse) but {
+                error e => log:printError("Error sending response", err = e) };
+            done;
+        }
+
+	//String to integer type conversion
+        string nameString = req.getHeader("sleeptime");
+
+	int delay = 0;
+   	var intResult = <int>nameString;
+   	match intResult {
+        	int value => delay=value;
+        	error err => io:println("error: " + err.message);
+   	}
+	
+	
 	http:Response response;
         string filePath = "./files/sample.json";	        
     	
+	//Create the byte channel	
 	io:ByteChannel byteChannel = io:openFile(filePath, io:READ);
 
+	//Derive the character channel from above byte channel
         io:CharacterChannel ch = new io:CharacterChannel(byteChannel, "UTF8");
-	//int size = ch.size("./files/sample.json");
+	
         match ch.readJson() {
             json result => {
 		
-		//int size = ch.size("./files/sample.json");		
-		//io:print(size);
-
 		 int j = 0;
     			while (j < 10) {
-			 runtime:sleep(1000);
+			 runtime:sleep(delay);
        			 io:println(j+ " Waiting ");
 				
         			j = j + 1;
 
-       			 if (j == 9) {
+       			 if (j == 1) {
           			  break;
         		}
     		}
              
-       		
-		//characterChannel.close();
+       		//close the charcter channel after reading process
+		ch.close() but {
+        	error e =>
+         	log:printError("Error occurred while closing character stream",
+                          err = e)
+   		};
 		
 		response.setJsonPayload(result);               
        		 _ = client->respond(response);
@@ -92,12 +122,8 @@ retriveBankAccountDetails(endpoint client, http:Request req) {
 		//characterChannel.close();
                 throw err;
             }
-        }
-       		 
-
-
+        }      		 
 }
-
 
 @http:ResourceConfig {
         methods: ["POST"],
@@ -110,6 +136,32 @@ retriveBankAccountDetails(endpoint client, http:Request req) {
 
 enterBankAccountDetails(endpoint client, http:Request req) {
 	http:Response response;
+
+	http:Request newRequest = new;
+	
+	//Check whether 'sleeptime' header exisits in the invoking request  
+        if (!req.hasHeader("sleeptime")) {
+            http:Response errorResponse = new;
+	//If not included 'sleeptime' in header print this as a error message  
+            errorResponse.statusCode = 500;
+            json errMsg = { "error": "'sleeptime' header is not found" };
+            errorResponse.setPayload(errMsg);
+            client->respond(errorResponse) but {
+                error e => log:printError("Error sending response", err = e) };
+            done;
+        }
+
+	//String to integer type conversion
+        string nameString = req.getHeader("sleeptime");
+
+	int delay = 0;
+   	var intResult = <int>nameString;
+   	match intResult {
+        	int value => delay=value;
+        	error err => io:println("error: " + err.message);
+   	}
+
+
 	json accountReq = check req.getJsonPayload();
         json Bank_Account_No = accountReq.Account_Details.Bank_Account_No;
 
@@ -126,14 +178,16 @@ enterBankAccountDetails(endpoint client, http:Request req) {
 
         else {
 
-            string accountId = Bank_Account_No.toString();
+	    string accountId = Bank_Account_No.toString();
             bankDetails[accountId] = accountReq;
 
 	
-        string filePath = "./files/sample.json";	        
-    	
+        string filePath = "./files/sample.json";
+	
+    	//Create the byte channel
 	io:ByteChannel byteChannel = io:openFile(filePath, io:WRITE);
-
+	
+	//Derive the character channel from above byte channel
         io:CharacterChannel ch = new io:CharacterChannel(byteChannel, "UTF8");
 
         match ch.writeJson(accountReq) {
@@ -143,22 +197,28 @@ enterBankAccountDetails(endpoint client, http:Request req) {
             	throw err;
         	}
 		
-		
             
             	() => {
 		
 		
 		int j = 0;
     			while (j < 10) {
-			 runtime:sleep(1000);
+			 runtime:sleep(delay);
        			 io:println(j+ " Waiting ");
 				
         			j = j + 1;
 
-       			 if (j == 9) {
+       			 if (j == 1) {
           			  break;
         		}
     		}
+	
+		//close the charcter channel after writing process
+		ch.close() but {
+        	error e =>
+         	log:printError("Error occurred while closing character stream",
+                        err = e)
+   		};
 
             	
 		json payload = " Content written successfully ";
@@ -168,18 +228,10 @@ enterBankAccountDetails(endpoint client, http:Request req) {
        		 _ = client->respond(response);
             	//io:println("Content written successfully");
             }
-        }
-	
-	
-	
-       		 
+        }     		 
 
-
-}}
-
-
-
-
+}
+}
 
 
 }
